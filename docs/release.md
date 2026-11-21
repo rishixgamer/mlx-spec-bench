@@ -6,6 +6,8 @@ The [reference manifest](../examples/reference-sweep.yaml) declares 48 cases and
 
 The `Apple Silicon Metal smoke` job runs on the arm64 `macos-15` GitHub-hosted runner. It installs the candidate wheel before starting the timed gate. The gate requires actual Metal execution with the local fixture, exact greedy output, a schema-valid report input, a rendered report, and deliberate corruption checks. `smoke-gate.json` records the elapsed time, runner, commit, and test count. The job must pass with a wall time under 45 seconds. Configure the `Apple Silicon Metal smoke` check as required in the default-branch rules to prevent merges when it fails.
 
+The separate `Pinned Qwen2.5 weight formats` job downloads the 0.5B pinned source and verifies two genuine Metal repetitions in each of FP16, Q8, Q6, and Q4. It uses the [weight-format check manifest](../examples/pinned-weights.yaml) and retains the raw rows and report. It runs on candidate-branch pushes and manual CI dispatches.
+
 ## 48 GB run and archive
 
 On a 48 GB Apple Silicon Mac, check out the candidate and use a fresh arm64 virtual environment. Install the candidate wheel with the `metal` extra and allow Hugging Face access for the pinned model downloads. Record the actual idle and background load in `--host-notes`.
