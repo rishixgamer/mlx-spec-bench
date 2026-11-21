@@ -1,10 +1,12 @@
 from dataclasses import replace
 import sys
 from time import monotonic
+from types import SimpleNamespace
 
 
 from mlx_spec_bench import Config, ModelSpec, Sweep, run_sweep
 from mlx_spec_bench.schema import read_manifest, read_records
+from mlx_spec_bench import supervisor
 from mlx_spec_bench.supervisor import supervise
 
 WORKER = """
@@ -76,3 +78,14 @@ def test_no_previous_evidence_is_overwritten(tmp_path, monkeypatch):
     second = run_sweep(sweep, output_dir=tmp_path)
     assert first.directory != second.directory
     assert (first.directory / "results.jsonl").read_bytes() == original
+
+
+def test_worker_first_observed_after_deadline_times_out(tmp_path, monkeypatch):
+    timestamps = iter((0, 2))
+    monkeypatch.setattr(supervisor, "monotonic", lambda: next(timestamps))
+    monkeypatch.setattr(supervisor.Sampler, "sample", lambda self: None)
+    finished = SimpleNamespace(pid=1, poll=lambda: 0, wait=lambda timeout: 0)
+    monkeypatch.setattr(supervisor.subprocess, "Popen", lambda *a, **kw: finished)
+    monkeypatch.setattr(supervisor, "_stop_process_group", lambda process: "")
+    outcome = supervise(["worker"], timeout=1, allowance=10**9, log=tmp_path / "worker.log")
+    assert outcome.error["kind"] == "timeout"

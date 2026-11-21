@@ -2,6 +2,7 @@
 
 from importlib.resources import files
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -9,13 +10,18 @@ import tarfile
 from tempfile import TemporaryDirectory
 
 from .config import Sweep
+from .decode import CacheStats, Generation, Trace
 from .io import file_fingerprint, read_json, write_json
+from .metrics import generation_metrics
+from .quality import task_matches
 from .report import render_report
 from .schema import read_manifest, read_records
 
 REFERENCE_MEMORY = 48 * 1024**3
 FOOTPRINT_GATE = 40_000_000_000
 SUSTAINED_PRESSURE_SECONDS = 1
+# Both pinned base Qwen2.5 revisions use this single EOS ID.
+REFERENCE_EOS_ID = 151643
 
 
 def reference_sweep() -> Sweep:
@@ -37,6 +43,120 @@ def _control_key(row: dict) -> tuple:
     )
 
 
+def _nat(value) -> bool:
+    return type(value) is int and value >= 0
+
+
+def _ids(values) -> bool:
+    return isinstance(values, list) and all(_nat(token) for token in values)
+
+
+def _valid_stop(output, stop, cap):
+    return (
+        _ids(output) and 0 < len(output) <= cap and REFERENCE_EOS_ID not in output[:-1]
+        and (stop == "eos" if output[-1] == REFERENCE_EOS_ID else stop == "max_tokens" and len(output) == cap)
+    )
+
+
+def _check_quality(detail, evaluation, metrics, cap):
+    text, tasks = detail["text"], detail["tasks"]
+    if (
+        [p["id"] for p in text] != [p["id"] for p in evaluation["text"]]
+        or [t["id"] for t in tasks] != [t["id"] for t in evaluation["tasks"]]
+    ):
+        raise ValueError("evaluation evidence does not cover the pinned split")
+    for passage in text:
+        ids, mask = passage["input_ids"], passage["scored_mask"]
+        count, loss = passage["scored_tokens"], passage["total_nll"]
+        if (
+            not _ids(ids) or len(mask) != len(ids) or any(type(flag) is not bool for flag in mask)
+            or (mask and mask[0]) or not _nat(count) or count != sum(mask)
+            or type(loss) not in (int, float) or not math.isfinite(loss) or loss < 0 or (not count and loss != 0)
+        ):
+            raise ValueError("invalid perplexity evidence")
+    for task, expected in zip(tasks, evaluation["tasks"], strict=True):
+        if (
+            not _ids(task["input_ids"]) or not task["input_ids"]
+            or not _valid_stop(task["output_ids"], task["stop_reason"], cap)
+            or task["expected"] != expected["answer"]
+            or task["correct"] is not task_matches(task["actual"], expected["answer"])
+        ):
+            raise ValueError("invalid task-score evidence")
+    if (
+        sum(p["scored_tokens"] for p in text) != metrics["scored_tokens"]
+        or math.fsum(p["total_nll"] for p in text) != metrics["total_nll"]
+        or sum(t["correct"] for t in tasks) != metrics["task_correct"]
+        or len(tasks) != metrics["task_examples"]
+    ):
+        raise ValueError("evaluation totals disagree with the record")
+
+
+def _check_requests(detail, row, prompt_ids):
+    cfg, metrics = row["config"], row["metrics"]
+    target_window = metrics["kv"]["window_tokens"]
+    plan = detail["cache_plan"]
+    if (
+        plan["target_window"] != target_window or plan["budget_bytes"] != cfg["cache"]["budget_bytes"]
+        or not _nat(plan["prefill_chunk"]) or plan["prefill_chunk"] == 0
+        or (not cfg["k"] and plan["draft_window"] is not None)
+        or (cfg["cache"]["policy"] == "sliding" and (
+            not _nat(target_window) or target_window == 0
+            or cfg["k"] and (not _nat(plan["draft_window"]) or plan["draft_window"] == 0)
+        ))
+        or (cfg["cache"]["policy"] == "unbounded" and (target_window is not None or plan["draft_window"] is not None))
+    ):
+        raise ValueError("cache plan disagrees with the record")
+    traces = [Trace(**trace) for trace in detail["requests"]]
+    if [trace.prompt_id for trace in traces] != prompt_ids:
+        raise ValueError("trace does not cover the pinned prompt suite")
+    evictions = 0
+    for trace in traces:
+        if (
+            not _ids(trace.input_ids) or not trace.input_ids
+            or not _valid_stop(trace.output_ids, trace.stop_reason, cfg["max_tokens"])
+            or not _nat(trace.submit_ns) or not _nat(trace.proposed)
+        ):
+            raise ValueError(f"{trace.prompt_id}: invalid token IDs, stop reason, or submission time")
+        previous_time = trace.submit_ns
+        for event in trace.emissions:
+            at, count, kind = event["at_ns"], event["count"], event["kind"]
+            if (
+                not _nat(at) or not previous_time <= at <= metrics["generation_ns"]
+                or not _nat(count) or not 0 < count <= len(trace.output_ids)
+                or kind not in ("autoregressive", "accepted", "corrections", "bonus")
+            ):
+                raise ValueError(f"{trace.prompt_id}: invalid emission event")
+            previous_time = at
+        if sum(event["count"] for event in trace.emissions) != len(trace.output_ids):
+            raise ValueError(f"{trace.prompt_id}: emission count disagrees with output IDs")
+        offsets = {"target": 0, **({"draft": 0} if cfg["k"] else {})}
+        for event in trace.cache_events:
+            role, start, end = event["role"], event["start"], event["end"]
+            size, staged = event["bytes"], event["staged_bytes"]
+            window = plan[f"{role}_window"]
+            if (
+                role not in offsets or not all(_nat(v) for v in (start, end, size, staged, event["evictions"]))
+                or not offsets[role] <= end <= len(trace.input_ids) + len(trace.output_ids)
+                or end <= start or start != (max(0, end - window) if window is not None else 0)
+                or event["evictions"] != start or not 0 < size <= staged
+                or staged > metrics["kv"]["working_peak_bytes"]
+            ):
+                raise ValueError(f"{trace.prompt_id}: invalid KV cache event")
+            evictions += start - (max(0, offsets[role] - window) if window is not None else 0)
+            offsets[role] = end
+        if any(offset < len(trace.input_ids) for offset in offsets.values()):
+            raise ValueError(f"{trace.prompt_id}: missing prefill cache evidence")
+    if evictions != metrics["kv"]["evictions"]:
+        raise ValueError("cache eviction total disagrees with the record")
+    measured = generation_metrics(
+        Generation(traces, metrics["prefill_ns"], metrics["generation_ns"], CacheStats()),
+        resident=metrics["mlx_resident_start_bytes"], peak=metrics["mlx_allocator_peak_bytes"],
+        quality=metrics["quality"], window=target_window,
+    )
+    if any(measured[key] != metrics[key] for key in ("tokens", "observations")):
+        raise ValueError("emission timing or token totals disagree with the record")
+
+
 def _case_problems(root: Path, rows: list[dict]) -> list[str]:
     from .models import SOURCES
     from .quality import evaluation_identity
@@ -48,7 +168,8 @@ def _case_problems(root: Path, rows: list[dict]) -> list[str]:
     workload = load_suite("reference-v1")
     suite = workload.identity
     prompt_ids = [prompt["id"] for prompt in workload.data["prompts"]]
-    evaluation = evaluation_identity(load_evaluation(), 32)
+    evaluation_suite = load_evaluation()
+    evaluation = evaluation_identity(evaluation_suite, 32)
     known_artifacts = {}
     tokenizers = set()
     environments = set()
@@ -98,17 +219,16 @@ def _case_problems(root: Path, rows: list[dict]) -> list[str]:
             issues.append(f"{run_id}: speculative trial never proposed a token")
         try:
             detail = read_json(root / row["details"])
-            tokens = _trace_key(detail)
             if (
-                detail["run_id"] != run_id or detail["case_id"] != row["case_id"]
+                type(detail["schema_version"]) is not int or detail["schema_version"] != 1
+                or any(detail[key] != row[key] for key in ("run_id", "case_id", "sweep_id", "repetition", "run_order"))
                 or detail["suite"] != suite or detail["evaluation"] != evaluation
-                or [item[0] for item in tokens] != prompt_ids
-                or any(not item[1] or not item[2] or item[3] not in ("eos", "max_tokens") for item in tokens)
-                or metrics["tokens"]["input"] != sum(len(item[1]) for item in tokens)
-                or metrics["tokens"]["output"] != sum(len(item[2]) for item in tokens)
             ):
-                raise ValueError("trace identity, counts, or stop reasons disagree with the record")
-        except (ValueError, TypeError, OSError, KeyError) as error:
+                raise ValueError("trace identity disagrees with the record")
+            _check_requests(detail, row, prompt_ids)
+            _check_quality(detail["quality"], evaluation_suite.data, metrics["quality"], cfg["max_tokens"])
+            tokens = _trace_key(detail)
+        except (ValueError, TypeError, OSError, KeyError, OverflowError) as error:
             issues.append(f"{run_id}: invalid detailed evidence ({error})")
             continue
         checked.append((row, tokens))

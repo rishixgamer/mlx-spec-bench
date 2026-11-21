@@ -7,7 +7,7 @@ import sys
 import pytest
 
 from mlx_spec_bench.io import json_text
-from mlx_spec_bench.report import report
+from mlx_spec_bench.report import render_report, report
 from mlx_spec_bench.schema import read_records, validate_record
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
@@ -31,6 +31,16 @@ def test_installed_report_reads_copied_evidence(tmp_path):
     command = [sys.executable, "-m", "mlx_spec_bench", "report", str(copied)]
     rendered = subprocess.run(command, cwd=tmp_path, check=True, capture_output=True, text=True)
     assert rendered.stdout == (FIXTURES / "golden-report.md").read_text()
+
+
+def test_speedup_requires_matching_warmups():
+    rows = read_records(FIXTURES / "golden.jsonl")
+    speculative = next(row for row in rows if row["status"] == "success" and row["config"]["k"])
+    speculative["warmups"] = 20
+    validate_record(speculative)
+    text = render_report(rows)
+    assert "| 1/1 | 2.000 |" not in text
+    assert f"`{speculative['case_id']}` · `{speculative['run_id']}` · missing/incomparable target-only control" in text
 
 
 def test_success_and_failure_round_trip(tmp_path):

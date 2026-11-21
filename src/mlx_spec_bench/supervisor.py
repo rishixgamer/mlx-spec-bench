@@ -52,26 +52,24 @@ def supervise(command: list[str], *, timeout: float, allowance: int, log: Path) 
         try:
             while True:
                 observed = sampler.sample()
-                if observed is not None and observed > allowance:
+                remaining = deadline - monotonic()
+                if remaining > 0 and observed is not None and observed > allowance:
                     error = {
                         "kind": "memory_limit",
                         "message": f"observed process-tree memory {observed} bytes exceeds {allowance}-byte allowance; "
                                    "reduce model size, batch_size, k, or cache budget",
                     }
                     break
-                status = process.poll()
-                if status is not None:
-                    if status:
-                        error = {"kind": "worker_exit", "message": f"worker exit status {status}; see {log.name}"}
-                    break
-                remaining = deadline - monotonic()
-                if remaining <= 0:
+                if remaining > 0:
+                    try:
+                        status = process.wait(timeout=min(remaining, SAMPLING_MS / 1000))
+                    except subprocess.TimeoutExpired:
+                        continue
+                if remaining <= 0 or monotonic() >= deadline:
                     error = {"kind": "timeout", "message": f"worker exceeded {timeout:g}s deadline; see {log.name}"}
-                    break
-                try:
-                    process.wait(timeout=min(remaining, SAMPLING_MS / 1000))
-                except subprocess.TimeoutExpired:
-                    pass
+                elif status:
+                    error = {"kind": "worker_exit", "message": f"worker exit status {status}; see {log.name}"}
+                break
         except KeyboardInterrupt:
             error = {"kind": "interrupted", "message": "sweep interrupted while worker was active"}
         finally:

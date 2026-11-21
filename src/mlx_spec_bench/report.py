@@ -37,7 +37,7 @@ def _latency_key(row):
     return (
         _hardware(row), _workload(row), cfg["batch_size"], cfg["max_tokens"], cfg["temperature"], cfg["seed"],
         fingerprint(row["identities"]["target"]), fingerprint(cfg["cache"]),
-        row["metrics"]["kv"]["window_tokens"],
+        row["metrics"]["kv"]["window_tokens"], row["warmups"],
     )
 
 
@@ -107,7 +107,9 @@ def _groups(records):
         failed = []
         for row in rows:
             if row["status"] == "success":
-                key = fingerprint({"environment": row["environment"], "identities": row["identities"]})
+                key = fingerprint({
+                    "environment": row["environment"], "identities": row["identities"], "warmups": row["warmups"],
+                })
                 compatible[key].append(row)
             else:
                 failed.append(row)
@@ -192,7 +194,7 @@ def render_report(records: list[dict], manifest: dict | None = None) -> str:
                     else:
                         controls.append("missing/incomparable FP16 quality control" if not quality else "ambiguous FP16 quality controls")
             elif group.mixed:
-                controls.append("mixed artifact or hardware identities across repetitions")
+                controls.append("mixed artifact, hardware, or warm-up settings across repetitions")
             if result["acceptance"] is None and group.metrics:
                 controls.append("acceptance undefined (zero proposals)")
             failures = [f"{x['error']['kind']} ({_escape(x['error']['message'])})" for x in group.records if x["error"]]
