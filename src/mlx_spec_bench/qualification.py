@@ -178,6 +178,8 @@ def _case_problems(root: Path, rows: list[dict]) -> list[str]:
         if row["status"] != "success":
             issues.append(f"{run_id}: {row['error']['kind']} ({row['error']['message']})")
             continue
+        if not (root / "worker-logs" / f"{run_id}.log").is_file():
+            issues.append(f"{run_id}: missing worker log")
         env = row["environment"]
         environments.add(json.dumps(env, sort_keys=True))
         if (
@@ -286,7 +288,7 @@ def qualify(artifact: str | Path, output: str | Path) -> list[str]:
             ("manifest.json", root / "manifest.json"), ("results.jsonl", root / "results.jsonl"),
             ("report.md", report_path),
             *[(row["details"], root / row["details"]) for row in rows],
-            *[(path.relative_to(root).as_posix(), path) for path in sorted((root / "worker-logs").glob("*.log"))],
+            *[(f"worker-logs/{row['run_id']}.log", root / "worker-logs" / f"{row['run_id']}.log") for row in rows],
         ]
         checksums = staging / "SHA256SUMS"
         checksums.write_text("".join(f"{file_fingerprint(path)}  {name}\n" for name, path in members), encoding="utf-8")

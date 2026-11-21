@@ -218,7 +218,8 @@ def render_report(records: list[dict], manifest: dict | None = None) -> str:
         "TTFT and ITL pool their observation counts. Decode tok/s divides pooled post-first tokens "
         "by the sum of measured decode spans. Acceptance and task score pool their counts. "
         "PPL exponentiates pooled NLL per scored token. Peaks are maxima. GB is 1,000,000,000 bytes. "
-        "Speedup uses decode throughput, and quality deltas are measured minus control.", "",
+        "Speedup uses decode throughput, and quality deltas are measured minus control. "
+        "Batch is the maximum number of active requests. Model forwards process one request at a time.", "",
     ]
     return "\n".join(lines)
 
