@@ -44,7 +44,15 @@ jobs:
           python -m build
           /usr/bin/time -p python -m pip install "$(ls dist/*.whl)[metal,test]"
       - name: Check installed run and report under 45 seconds
-        run: python tests/smoke_metal.py "$RUNNER_TEMP/metal-smoke"
+        run: |
+          python tests/smoke_metal.py "$RUNNER_TEMP/metal-smoke"
+          {
+            echo '### Apple Silicon smoke'
+            echo ''
+            echo '```json'
+            cat "$RUNNER_TEMP/metal-smoke/smoke-gate.json"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Test decoding, cache rollback, and worker failures
         run: python -m pytest -q
       - name: Verify Python API on the candidate wheel
@@ -56,3 +64,7 @@ jobs:
         with:
           name: metal-smoke-${{ github.sha }}
           path: ${{ runner.temp }}/metal-smoke/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: candidate-distributions-${{ github.sha }}
+          path: dist/
