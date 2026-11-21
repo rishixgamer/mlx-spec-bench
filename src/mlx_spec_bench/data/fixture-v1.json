@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "fixture-v1",
+  "license": "MIT",
+  "template": "{text}",
+  "prompts": [
+    {
+      "id": "short",
+      "text": "red blue",
+      "reference": "green gold"
+    },
+    {
+      "id": "long",
+      "text": "red orange purple blue red orange purple blue red orange purple blue red orange purple blue red orange purple blue red orange purple blue red orange purple blue red orange purple blue red orange purple blue red orange purple blue red orange purple blue red orange purple blue red orange purple blue red orange purple blue red orange purple blue red orange purple blue red orange purple blue red orange purple blue",
+      "reference": "green gold"
+    },
+    {
+      "id": "early-eos",
+      "text": "black",
+      "reference": "[EOS]"
+    },
+    {
+      "id": "length-cap",
+      "text": "white",
+      "reference": "white"
+    },
+    {
+      "id": "partial-batch",
+      "text": "orange gold",
+      "reference": "[EOS]"
+    }
+  ]
+}

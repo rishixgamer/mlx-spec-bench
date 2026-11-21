@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: ["main", "codex/mlx-spec-bench-v1"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portable:
+    name: Portable schemas, reports, and isolation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - run: python -m pip install ".[test]"
+      - run: python -m pytest -q
+      - run: |
+          mlx-bench validate config examples/reference-sweep.yaml
+          mlx-bench validate records tests/fixtures/golden.jsonl
+          mlx-bench report tests/fixtures/golden.jsonl
+
+  metal-smoke:
+    name: Apple Silicon Metal smoke
+    runs-on: macos-15
+    timeout-minutes: 12
+    env:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install and build candidate separately from timed smoke
+        run: |
+          test "$(uname -m)" = arm64
+          /usr/bin/time -p python -m pip install build
+          python -m build
+          /usr/bin/time -p python -m pip install "$(ls dist/*.whl)[metal,test]"
+      - name: Check installed run and report under 45 seconds
+        run: python tests/smoke_metal.py "$RUNNER_TEMP/metal-smoke"
+      - name: Test decoding, cache rollback, and worker failures
+        run: python -m pytest -q
+      - name: Verify Python API on the candidate wheel
+        run: |
+          cd "$RUNNER_TEMP"
+          python "$GITHUB_WORKSPACE/examples/fixture.py"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: metal-smoke-${{ github.sha }}
+          path: ${{ runner.temp }}/metal-smoke/

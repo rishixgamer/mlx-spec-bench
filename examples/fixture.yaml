@@ -1,0 +1,6 @@
+schema_version: 1
+target:
+  id: fixture
+suite: fixture-v1
+batch_size: 2
+max_tokens: 8

@@ -1,0 +1,19 @@
+schema_version: 1
+base:
+  target:
+    id: fixture
+  draft:
+    id: fixture
+    weight_format: fp16
+  suite: fixture-v1
+  batch_size: 2
+  max_tokens: 8
+matrix:
+  weight_format: [fp16, q8, q6, q4]
+  k: [0, 1, 7]
+  cache:
+    - policy: unbounded
+    - policy: sliding
+      budget_bytes: 45056
+warmups: 1
+repetitions: 2

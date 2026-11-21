@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mlx-spec-bench.invalid/schemas/v1/config.json",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "type": "integer"
+    },
+    "target": {
+      "$ref": "#/$defs/model"
+    },
+    "draft": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/model"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "suite": {
+      "type": "string",
+      "minLength": 1
+    },
+    "batch_size": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 64
+    },
+    "max_tokens": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4096
+    },
+    "k": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 64
+    },
+    "temperature": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10
+    },
+    "cache": {
+      "$ref": "#/$defs/cache"
+    },
+    "memory_limit_bytes": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "timeout_seconds": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 86400
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "quality": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "target"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "model": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "enum": [
+            "fixture",
+            "qwen2.5-1.5b",
+            "qwen2.5-0.5b"
+          ]
+        },
+        "weight_format": {
+          "enum": [
+            "fp16",
+            "q8",
+            "q6",
+            "q4"
+          ]
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "cache": {
+      "type": "object",
+      "properties": {
+        "policy": {
+          "enum": [
+            "unbounded",
+            "sliding"
+          ]
+        },
+        "budget_bytes": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  }
+}
