@@ -1,0 +1,501 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mlx-spec-bench.invalid/schemas/v1/manifest.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "type": "integer"
+    },
+    "sweep_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "started_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "finished_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "enum": [
+        "running",
+        "success",
+        "failure",
+        "interrupted"
+      ]
+    },
+    "warmups": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 20
+    },
+    "repetitions": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    },
+    "cases": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^case-[a-f0-9]{24}$"
+      },
+      "additionalProperties": {
+        "$ref": "config.json"
+      }
+    },
+    "expected": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^case-[a-f0-9]{24}$"
+          },
+          "run_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{32}-case-[a-f0-9]{24}-r[0-9]{3}$"
+          },
+          "repetition": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "run_order": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "case_id",
+          "run_id",
+          "repetition",
+          "run_order"
+        ]
+      }
+    },
+    "host_notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_commit": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "environment": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "minLength": 1
+        },
+        "os_release": {
+          "type": "string",
+          "minLength": 1
+        },
+        "architecture": {
+          "type": "string",
+          "minLength": 1
+        },
+        "device": {
+          "type": "string",
+          "minLength": 1
+        },
+        "backend": {
+          "type": "string",
+          "minLength": 1
+        },
+        "memory_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "python": {
+          "type": "string",
+          "minLength": 1
+        },
+        "packages": {
+          "type": "object",
+          "properties": {
+            "mlx-spec-bench": {
+              "type": "string",
+              "minLength": 1
+            },
+            "mlx": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "mlx-lm": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "transformers": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "mlx-spec-bench",
+            "mlx",
+            "mlx-lm",
+            "transformers"
+          ],
+          "additionalProperties": false
+        },
+        "hostname": {
+          "type": "string",
+          "minLength": 1
+        },
+        "logical_cpus": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "platform",
+        "os_release",
+        "architecture",
+        "device",
+        "backend",
+        "memory_bytes",
+        "python",
+        "packages",
+        "hostname",
+        "logical_cpus"
+      ],
+      "additionalProperties": false
+    },
+    "before": {
+      "type": "object",
+      "properties": {
+        "sampling_period_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "peak_process_rss_bytes": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "peak_process_footprint_bytes": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "footprint_samples": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "system_available_min_bytes": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "system_swap_start_bytes": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "system_swap_end_bytes": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "system_swap_peak_bytes": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pressure_samples": {
+          "type": "object",
+          "properties": {
+            "normal": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "warning": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "critical": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unknown": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "normal",
+            "warning",
+            "critical",
+            "unknown"
+          ],
+          "additionalProperties": false
+        },
+        "pressure_max_consecutive_elevated_samples": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pressure_max_elevated_span_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "sampling_period_ms",
+        "sample_count",
+        "peak_process_rss_bytes",
+        "peak_process_footprint_bytes",
+        "footprint_samples",
+        "system_available_min_bytes",
+        "system_swap_start_bytes",
+        "system_swap_end_bytes",
+        "system_swap_peak_bytes",
+        "pressure_samples",
+        "pressure_max_consecutive_elevated_samples",
+        "pressure_max_elevated_span_ns"
+      ],
+      "additionalProperties": false
+    },
+    "after": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "sampling_period_ms": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "sample_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "peak_process_rss_bytes": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "peak_process_footprint_bytes": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "footprint_samples": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "system_available_min_bytes": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "system_swap_start_bytes": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "system_swap_end_bytes": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "system_swap_peak_bytes": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "pressure_samples": {
+              "type": "object",
+              "properties": {
+                "normal": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "warning": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "critical": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "unknown": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "normal",
+                "warning",
+                "critical",
+                "unknown"
+              ],
+              "additionalProperties": false
+            },
+            "pressure_max_consecutive_elevated_samples": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pressure_max_elevated_span_ns": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "sampling_period_ms",
+            "sample_count",
+            "peak_process_rss_bytes",
+            "peak_process_footprint_bytes",
+            "footprint_samples",
+            "system_available_min_bytes",
+            "system_swap_start_bytes",
+            "system_swap_end_bytes",
+            "system_swap_peak_bytes",
+            "pressure_samples",
+            "pressure_max_consecutive_elevated_samples",
+            "pressure_max_elevated_span_ns"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "sweep_id",
+    "started_at",
+    "finished_at",
+    "status",
+    "warmups",
+    "repetitions",
+    "cases",
+    "expected",
+    "host_notes",
+    "source_commit",
+    "environment",
+    "before",
+    "after"
+  ]
+}

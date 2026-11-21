@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mlx-spec-bench.invalid/schemas/v1/sweep.json",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "type": "integer"
+    },
+    "base": {
+      "$ref": "config.json"
+    },
+    "matrix": {
+      "type": "object",
+      "properties": {
+        "weight_format": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "fp16",
+              "q8",
+              "q6",
+              "q4"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "k": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 64
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "cache": {
+          "type": "array",
+          "items": {
+            "$ref": "config.json#/$defs/cache"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "batch_size": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "warmups": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 20
+    },
+    "repetitions": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    }
+  },
+  "required": [
+    "base"
+  ],
+  "additionalProperties": false
+}

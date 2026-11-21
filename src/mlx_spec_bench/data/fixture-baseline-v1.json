@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "suite": "fixture-v1",
+  "batch_size": 2,
+  "max_tokens": 8,
+  "input_tokens": 78,
+  "output_tokens": 16,
+  "requests": [
+    {"prompt_id": "short", "input_tokens": 2, "output_ids": [5, 6, 2], "stop_reason": "eos"},
+    {"prompt_id": "long", "input_tokens": 72, "output_ids": [5, 6, 2], "stop_reason": "eos"},
+    {"prompt_id": "early-eos", "input_tokens": 1, "output_ids": [2], "stop_reason": "eos"},
+    {"prompt_id": "length-cap", "input_tokens": 1, "output_ids": [8, 8, 8, 8, 8, 8, 8, 8], "stop_reason": "max_tokens"},
+    {"prompt_id": "partial-batch", "input_tokens": 2, "output_ids": [2], "stop_reason": "eos"}
+  ]
+}

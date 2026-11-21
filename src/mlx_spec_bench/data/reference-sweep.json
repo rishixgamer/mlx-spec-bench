@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "base": {
+    "target": {
+      "id": "qwen2.5-1.5b"
+    },
+    "draft": {
+      "id": "qwen2.5-0.5b",
+      "weight_format": "fp16"
+    },
+    "suite": "reference-v1",
+    "max_tokens": 32,
+    "temperature": 0,
+    "memory_limit_bytes": 40000000000,
+    "timeout_seconds": 1800,
+    "seed": 0,
+    "quality": true
+  },
+  "matrix": {
+    "weight_format": [
+      "fp16",
+      "q8",
+      "q6",
+      "q4"
+    ],
+    "k": [
+      0,
+      1,
+      4
+    ],
+    "cache": [
+      {
+        "policy": "unbounded"
+      },
+      {
+        "policy": "sliding",
+        "budget_bytes": 16777216
+      }
+    ],
+    "batch_size": [
+      1,
+      2
+    ]
+  },
+  "warmups": 1,
+  "repetitions": 2
+}

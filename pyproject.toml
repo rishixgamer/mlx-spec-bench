@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mlx-spec-bench"
+version = "1.0.0"
+description = "Reproducible MLX speculative decoding benchmarks for Apple Silicon"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = ["PyYAML>=6.0.2,<7", "jsonschema>=4.23,<5", "psutil>=7,<8"]
+
+[project.optional-dependencies]
+metal = [
+    "mlx==0.31.2; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "mlx-lm==0.31.3; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "transformers==5.23.0; sys_platform == 'darwin' and platform_machine == 'arm64'",
+]
+test = ["pytest>=8,<10"]
+
+[project.scripts]
+mlx-bench = "mlx_spec_bench.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+mlx_spec_bench = ["data/*.json", "schemas/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

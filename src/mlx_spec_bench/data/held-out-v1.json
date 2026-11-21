@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "id": "held-out-v1",
+  "license": "MIT",
+  "template": "{text}",
+  "text": [
+    {
+      "id": "colors",
+      "prefix": "blue",
+      "continuation": " green gold"
+    },
+    {
+      "id": "repeat",
+      "prefix": "white",
+      "continuation": " white white"
+    },
+    {
+      "id": "empty",
+      "prefix": "orange",
+      "continuation": ""
+    },
+    {
+      "id": "map",
+      "prefix": "The map shows a narrow river",
+      "continuation": " running past the market square."
+    },
+    {
+      "id": "boat",
+      "prefix": "Before the sun went down,",
+      "continuation": " the last boat returned to the harbor."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "fixture-colors",
+      "text": "blue",
+      "answer": "green gold"
+    },
+    {
+      "id": "fixture-wrong",
+      "text": "black",
+      "answer": "orange"
+    },
+    {
+      "id": "math",
+      "text": "Return only the sum as a number.\n4 + 5 =",
+      "answer": "9"
+    },
+    {
+      "id": "language",
+      "text": "Complete with one English word: The opposite of hot is",
+      "answer": "cold"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+schema_version: 1
+base:
+  target:
+    id: qwen2.5-0.5b
+  suite: reference-v1
+  max_tokens: 4
+  memory_limit_bytes: 6000000000
+  timeout_seconds: 900
+matrix:
+  weight_format: [fp16, q8, q6, q4]
+repetitions: 2
