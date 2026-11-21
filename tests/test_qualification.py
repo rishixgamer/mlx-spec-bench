@@ -56,3 +56,17 @@ def test_qualification_reconciles_quality_totals():
     _check_quality(quality, evaluation, totals, 2)
     with pytest.raises(ValueError, match="evaluation totals disagree"):
         _check_quality(quality, evaluation, {**totals, "scored_tokens": 2}, 2)
+
+
+def test_qualification_requires_the_log_for_each_completed_run(tmp_path):
+    from pathlib import Path
+    from mlx_spec_bench.qualification import _case_problems
+    from mlx_spec_bench.schema import read_records
+
+    row = read_records(Path(__file__).parent / "fixtures" / "golden.jsonl")[0]
+    log = tmp_path / "worker-logs" / (row["run_id"] + ".log")
+    log.parent.mkdir()
+    problem = f"{row['run_id']}: missing worker log"
+    assert problem in _case_problems(tmp_path, [row])
+    log.touch()  # A successful worker may produce no console output.
+    assert problem not in _case_problems(tmp_path, [row])

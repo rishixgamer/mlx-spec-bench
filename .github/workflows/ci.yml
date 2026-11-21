@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: ["main", "codex/mlx-spec-bench-v1"]
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:
@@ -37,41 +37,21 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - name: Install and build candidate separately from timed smoke
-        run: |
-          test "$(uname -m)" = arm64
-          /usr/bin/time -p python -m pip install build
-          python -m build
-          /usr/bin/time -p python -m pip install "$(ls dist/*.whl)[metal,test]"
-      - name: Check installed run and report under 45 seconds
-        run: |
-          python tests/smoke_metal.py "$RUNNER_TEMP/metal-smoke"
-          {
-            echo '### Apple Silicon smoke'
-            echo ''
-            echo '```json'
-            cat "$RUNNER_TEMP/metal-smoke/smoke-gate.json"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-      - name: Test decoding, cache rollback, and worker failures
-        run: python -m pytest -q
-      - name: Verify Python API on the candidate wheel
-        run: |
-          cd "$RUNNER_TEMP"
-          python "$GITHUB_WORKSPACE/examples/fixture.py"
+      - name: Build and test the release distributions on Metal
+        run: bash scripts/prepare-release.sh --smoke-only "$RUNNER_TEMP/candidate"
       - if: always()
         uses: actions/upload-artifact@v4
         with:
           name: metal-smoke-${{ github.sha }}
-          path: ${{ runner.temp }}/metal-smoke/
+          path: ${{ runner.temp }}/candidate/smoke/
       - uses: actions/upload-artifact@v4
         with:
           name: candidate-distributions-${{ github.sha }}
-          path: dist/
+          path: ${{ runner.temp }}/candidate/dist/
 
   pinned-weights:
     name: Pinned Qwen2.5 weight formats
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref_name == 'codex/mlx-spec-bench-v1')
+    if: github.event_name != 'pull_request'
     runs-on: macos-15
     timeout-minutes: 25
     env:

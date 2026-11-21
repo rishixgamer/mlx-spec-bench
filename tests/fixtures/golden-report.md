@@ -18,4 +18,4 @@
 - `case-4083836b192d89ab8fcf4c72` · `00000000000000000000000000000000-case-4083836b192d89ab8fcf4c72-r001` · missing/incomparable target-only control · quality control `case-2b728ac4c5361dc4384a4364` (FP16/unbounded)
 - `case-739447885e1b9c43148ed777` · `00000000000000000000000000000000-case-739447885e1b9c43148ed777-r001` · timeout (fixture deadline expired)
 
-TTFT and ITL pool their observation counts. Decode tok/s divides pooled post-first tokens by the sum of measured decode spans. Acceptance and task score pool their counts. PPL exponentiates pooled NLL per scored token. Peaks are maxima. GB is 1,000,000,000 bytes. Speedup uses decode throughput, and quality deltas are measured minus control.
+TTFT and ITL pool their observation counts. Decode tok/s divides pooled post-first tokens by the sum of measured decode spans. Acceptance and task score pool their counts. PPL exponentiates pooled NLL per scored token. Peaks are maxima. GB is 1,000,000,000 bytes. Speedup uses decode throughput, and quality deltas are measured minus control. Batch is the maximum number of active requests. Model forwards process one request at a time.
