@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=77"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling==1.29.0"]
+build-backend = "hatchling.build"
 
 [project]
 name = "mlx-spec-bench"
@@ -23,11 +23,11 @@ test = ["pytest>=8,<10"]
 [project.scripts]
 mlx-bench = "mlx_spec_bench.cli:main"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/mlx_spec_bench"]
 
-[tool.setuptools.package-data]
-mlx_spec_bench = ["data/*.json", "schemas/*.json"]
+[tool.hatch.build.targets.sdist]
+include = ["/src", "/examples", "/scripts", "/tests", "/docs", "/LICENSE", "/README.md", "/CHANGELOG.md", "/pyproject.toml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

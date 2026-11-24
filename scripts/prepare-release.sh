@@ -36,6 +36,7 @@ fi
 
 repo=$(git -C "$(dirname "$0")" rev-parse --show-toplevel)
 commit=$(git -C "$repo" rev-parse HEAD)
+export SOURCE_DATE_EPOCH="$(git -C "$repo" show -s --format=%ct "$commit")"
 mkdir -- "$output"  # Use a new directory so earlier evidence survives retries.
 output=$(cd "$output" && pwd)
 work=$(mktemp -d)
@@ -48,6 +49,10 @@ echo "Preparing commit $commit in $output"
 source "$work/env/bin/activate"
 python -m pip install build
 python -m build --outdir "$output/dist"
+python -m build --outdir "$work/rebuild"
+for artifact in "$output"/dist/*; do
+  cmp "$artifact" "$work/rebuild/${artifact##*/}"
+done
 wheels=("$output"/dist/*.whl)
 python -m pip install "${wheels[0]}[metal,test]"
 export GITHUB_SHA="$commit"
