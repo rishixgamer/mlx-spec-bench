@@ -1,12 +1,16 @@
 # mlx-spec-bench
 
-Benchmark target-only and speculative decoding on Apple Silicon. Compare latency, throughput, unified-memory use, and quality from the same workload. Each result retains the exact input and generated token IDs, stop reasons, model identities, and measurement denominators.
+Compare speculative and target-only decoding on Apple Silicon with matched prompts and model settings. Each run records latency, throughput, memory use, and the exact token IDs.
+
+In 96 Qwen2.5 runs on an Apple M5 Pro, speculation was slower in all 32 matched configurations. Six speculative runs produced a different greedy token. [Benchmark results](docs/m5-speculative-decoding.md) · [Decode-rate chart](docs/assets/m5-decode-rates.webp)
 
 ## Install and run the offline fixture
 
 Use a native arm64 Python 3.11–3.13 environment on an Apple Silicon Mac running macOS 15 or later. The Metal extra pins MLX 0.31.2, mlx-lm 0.31.3, and Transformers 5.23.0. The fixture is generated locally from a fixed seed and requires no model downloads. See the [fixture token baseline](src/mlx_spec_bench/data/fixture-baseline-v1.json).
 
 ```sh
+git clone https://github.com/rishixgamer/mlx-spec-bench.git
+cd mlx-spec-bench
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install '.[metal]'
